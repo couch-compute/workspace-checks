@@ -67,6 +67,20 @@ verdict line, `PRECOMMIT-VERDICT board PASS|REFUSE`. A board that cannot be read
 exits 2 with no verdict, a fault and never a pass. It needs the `gh` command-line
 tool, authenticated to read the repository's issues.
 
+## Launch-line check
+
+`launch_check.py` checks that `CURRENT_TASK.md` and every top-level `briefs/*.md` open
+with `**Launch:** <lean|full> · <opus|sonnet|haiku> · <folder>` (the first non-blank
+line after the heading), or that a task file says `CURRENT_TASK: none`:
+
+```
+python launch_check.py --root <checkout>
+```
+
+`briefs/reports/` and `_archive/` are not checked. The folder is not looked up on
+disk. Each finding names the file and line; the output ends with
+`PRECOMMIT-VERDICT launch PASS|REFUSE`. It uses the standard library only.
+
 ## Tests
 
 ```
