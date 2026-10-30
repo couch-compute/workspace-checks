@@ -33,6 +33,16 @@ to start exits non-zero too.
 **`--fix` repairs only byte-order marks and mojibake.** Control bytes and non-UTF-8 files
 are reported and left for a person, because the original text cannot be known.
 
+## Shared workflows
+
+Repositories call these at `main` rather than copying them, so a change is made once:
+
+- `.github/workflows/commit-checks.yml`: encoding and the `Agent:` and `Signed-off-by:`
+  trailers over every commit in a pull request.
+- `.github/workflows/board.yml`: the board check and the Launch-line check, on a schedule.
+
+`session_index.py <repository root>` regenerates `sessions/INDEX.md` from the records.
+
 ## Quotations
 
 A sequence that is the whole content of an inline code span - or, in source files, of a

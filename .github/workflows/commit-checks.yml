@@ -1,0 +1,58 @@
+name: commit-checks
+
+# The commit checks every repository runs on its pull requests, kept in one place.
+# Repositories call this at `main`, so a change here is one reviewed pull request,
+# never one per repository. Every change here needs the owner's review (CODEOWNERS).
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  commits:
+    name: commits
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check out the checker
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: couch-compute/workspace-checks
+          ref: main
+          path: .workspace-checks
+          persist-credentials: false
+
+      - name: Check every commit in the pull request
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          range="$BASE_SHA..$HEAD_SHA"
+          python3 .workspace-checks/encoding.py --commits "$range"
+          bad=0
+          for sha in $(git rev-list --no-merges "$range"); do
+            subject="$(git log -1 --format=%s "$sha")"
+            case "$subject" in
+              Revert*|fixup!*|squash!*|amend!*) continue ;;
+            esac
+            git log -1 --format=%B "$sha" > "$RUNNER_TEMP/message"
+            if ! python3 .workspace-checks/encoding.py --message "$RUNNER_TEMP/message" > "$RUNNER_TEMP/message-check"; then
+              echo "ENCODING  $sha  $subject"; cat "$RUNNER_TEMP/message-check"; bad=1
+            fi
+            trailers="$(git interpret-trailers --parse < "$RUNNER_TEMP/message")"
+            for name in Agent Signed-off-by; do
+              if ! printf '%s\n' "$trailers" | grep -qiE "^${name}:[[:space:]]*[^[:space:]]"; then
+                echo "NO ${name}: TRAILER  $sha  $subject"; bad=1
+              fi
+            done
+          done
+          exit "$bad"
