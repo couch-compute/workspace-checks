@@ -4,7 +4,8 @@ Regenerate a repository's session index from its session records.
     python session_index.py <repository root>
 
 Each record is `sessions/<date>-<short-sha>.md`. The index, `sessions/INDEX.md`, is
-one table row per record, newest first: the date, and the record's first heading
+one table row per record, newest date first (records of one day in no set order):
+the date, and the record's first heading
 as a link to it. A leading "Session <n> ·" and a repeated date are dropped from the
 heading, so older numbered records read like newer unnumbered ones.
 
