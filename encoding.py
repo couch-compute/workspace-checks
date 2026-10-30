@@ -510,9 +510,10 @@ def check_message(path: str) -> tuple[list[str], list[Finding]]:
     and a defect in a message cannot be repaired without rewriting history. This
     runs from the `commit-msg` hook.
 
-    The mark is read from byte zero of the raw file, where git will keep it.
-    Comment lines are dropped first, because git drops them before storing the
-    message.
+    A byte-order mark at byte zero is tolerated: some editors and shells write one
+    into the message file, and it says nothing about the text. A mark anywhere
+    else is damage like any other. Comment lines are dropped first, because git
+    drops them before storing the message.
 
     **Scanned as prose, never as source.** Only backticks quote here, which is the
     rule an author can apply while typing a message.
@@ -520,7 +521,7 @@ def check_message(path: str) -> tuple[list[str], list[Finding]]:
     data = _read(path)
     if data is None:
         return Checked([], [], [], [], [])
-    boms = ["<commit message>"] if data.startswith(BOM) else []
+    boms: list[str] = []
     try:
         _bom, text = _decode("<commit message>", data)
     except Unscannable as exc:
