@@ -1,0 +1,34 @@
+name: main
+
+# Pull requests are checked before they merge; this checks what landed. Two pull requests can
+# each pass on their own and fail together, and the branch rules do not require a pull request
+# to be up to date with main before it merges.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  check-main:
+    name: check main
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Run the tests
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --quiet pytest
+          "$RUNNER_TEMP/venv/bin/python" -m pytest tests
