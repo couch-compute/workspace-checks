@@ -381,13 +381,17 @@ def test_this_repository_is_clean():
 
 # --------------------------------------------------------- the commit message
 
-def test_a_byte_order_mark_in_a_commit_message_is_refused(tmp_path):
+def test_a_leading_byte_order_mark_in_a_commit_message_is_tolerated(tmp_path):
     msg = tmp_path / "COMMIT_EDITMSG"
     msg.write_bytes(b"\xef\xbb\xbfdocs: a subject with a mark\n")
     result = encoding.check_message(str(msg))
-    assert result.boms == ["<commit message>"]
-    assert result.findings == []
-    assert result.refused
+    assert not result.refused
+
+
+def test_a_byte_order_mark_inside_a_commit_message_is_refused(tmp_path):
+    msg = tmp_path / "COMMIT_EDITMSG"
+    msg.write_bytes(b"docs: a subject\n\na body with \xef\xbb\xbf a mark\n")
+    assert encoding.check_message(str(msg)).refused
 
 
 def test_a_mangled_sequence_in_a_commit_message_is_refused(tmp_path):

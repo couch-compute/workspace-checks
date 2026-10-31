@@ -1,0 +1,40 @@
+name: board
+
+# The scheduled board check, kept in one place. Repositories with a board call this
+# at `main` from a small scheduled workflow of their own.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  board:
+    name: board
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Check out the checker
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: couch-compute/workspace-checks
+          ref: main
+          path: .workspace-checks
+          persist-credentials: false
+
+      - name: Check the board and the roadmap
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: python3 .workspace-checks/board_check.py --repo "$REPO" --root "$GITHUB_WORKSPACE"
+
+      - name: Check the Launch line on task files and briefs
+        if: ${{ !cancelled() }}
+        run: python3 .workspace-checks/launch_check.py --root "$GITHUB_WORKSPACE"
