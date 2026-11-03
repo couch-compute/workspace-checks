@@ -41,7 +41,10 @@ Repositories call these at `main` rather than copying them, so a change is made 
   trailers over every commit in a pull request.
 - `.github/workflows/board.yml`: the board check and the Launch-line check, on a schedule.
 
-`session_index.py <repository root>` regenerates `sessions/INDEX.md` from the records.
+`session_index.py <repository root>` regenerates `sessions/INDEX.md` from the records: a
+record that opens `# Session <n>: <label>` with a `**Block:**` and a `**Found:**` line
+generates its row, and an older record keeps the row already typed for it. `--check` writes
+nothing and exits 1 with the difference if the index would change.
 
 ## Quotations
 
