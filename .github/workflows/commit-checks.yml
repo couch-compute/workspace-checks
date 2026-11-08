@@ -34,6 +34,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
           range="$BASE_SHA..$HEAD_SHA"
@@ -48,6 +49,9 @@ jobs:
             if ! python3 .workspace-checks/encoding.py --message "$RUNNER_TEMP/message" > "$RUNNER_TEMP/message-check"; then
               echo "ENCODING  $sha  $subject"; cat "$RUNNER_TEMP/message-check"; bad=1
             fi
+            # A dependency bot's commit is generated, and it cannot write trailers.
+            # The login comes from the code host, so a commit cannot claim it.
+            if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then continue; fi
             trailers="$(git interpret-trailers --parse < "$RUNNER_TEMP/message")"
             for name in Agent Signed-off-by; do
               if ! printf '%s\n' "$trailers" | grep -qiE "^${name}:[[:space:]]*[^[:space:]]"; then
@@ -56,3 +60,16 @@ jobs:
             done
           done
           exit "$bad"
+
+      - name: Check the session index, where the repository has one
+        run: |
+          set -euo pipefail
+          if [ ! -f sessions/INDEX.md ]; then
+            echo "No session index in this repository."
+            exit 0
+          fi
+          if ! python3 .workspace-checks/session_index.py --check .; then
+            echo "sessions/INDEX.md is not what the records generate."
+            echo "Run session_index.py on the repository root and commit the result."
+            exit 1
+          fi

@@ -27,7 +27,8 @@ widened to the five columns, its rows keeping their date and record and gaining 
 cells. A missing index is written with a default preamble.
 
 `--check` writes nothing: it exits 1 and prints the difference if the index would
-change, 0 if it would not. It uses the Python standard library alone.
+change or names the columns if they are not the standard five in the standard order,
+and exits 0 otherwise. It uses the Python standard library alone.
 """
 from __future__ import annotations
 
@@ -227,7 +228,15 @@ def main(argv: list[str] | None = None) -> int:
         print(err, file=sys.stderr)
         return 2
     if check:
+        # A Windows console or pipe defaults to a code page that cannot show every character.
+        reconfigure = getattr(sys.stdout, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8", errors="replace")
         old = index.read_text(encoding="utf-8") if index.exists() else ""
+        parsed = parse_index(old) if old else None
+        if parsed and parsed[1] != DEFAULT_COLUMNS:
+            print(f"{index}: the columns are {parsed[1]}; the standard is {DEFAULT_COLUMNS}")
+            return 1
         if old == new:
             return 0
         sys.stdout.writelines(difflib.unified_diff(

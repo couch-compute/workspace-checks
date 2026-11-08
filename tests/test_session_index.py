@@ -2,6 +2,8 @@
 exactly, newest first, the index's own preamble and columns kept, and --check writing nothing."""
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -117,3 +119,29 @@ def test_a_pipe_in_a_heading_does_not_break_the_table(tmp_path):
 
 def test_no_sessions_folder_is_an_error_not_an_empty_index(tmp_path):
     assert session_index.main([str(tmp_path)]) == 2
+
+
+def test_check_refuses_columns_that_are_not_the_standard_order(tmp_path, capsys):
+    s = sessions(tmp_path)
+    head = "# Session index\n\n| # | date | block | label | what it found |\n|---|---|---|---|---|\n"
+    (s / "INDEX.md").write_text(head, encoding="utf-8")
+    assert session_index.main(["--check", str(tmp_path)]) == 1
+    assert "the standard is" in capsys.readouterr().out
+    assert (s / "INDEX.md").read_text(encoding="utf-8") == head
+
+
+def test_check_passes_the_standard_columns(tmp_path):
+    s = sessions(tmp_path)
+    (s / "INDEX.md").write_text("# Session index\n\n" + FIVE, encoding="utf-8")
+    assert session_index.main(["--check", str(tmp_path)]) == 0
+
+
+def test_check_can_print_any_character_on_a_windows_console_encoding(tmp_path):
+    s = sessions(tmp_path)
+    current(s, "2026-11-03-abc1234.md", 1, "One", "b", "an arrow → here")
+    (s / "INDEX.md").write_text("# Session index\n\n" + FIVE, encoding="utf-8")
+    run = subprocess.run(
+        [sys.executable, "-B", session_index.__file__, "--check", str(tmp_path)],
+        capture_output=True, env=dict(os.environ, PYTHONIOENCODING="cp1252"))
+    assert run.returncode == 1, run.stderr
+    assert b"Traceback" not in run.stderr
